@@ -1,7 +1,13 @@
 import React from 'react';
-import Card from "./components/Card/Card";
+import { Route } from 'react-router-dom';
 import Drawer from "./components/Drawer/Drawer";
 import Header from "./components/Header";
+import Home from './pages/Home';
+import Favorite from './pages/Favorite';
+import axios from 'axios';
+
+
+export const AppContext = React.createContext({});
 
 function App() {
   const [visible, setVisibile] = React.useState(false);
@@ -11,15 +17,31 @@ function App() {
   const [favItems, setFavItems] = React.useState([]);
 
   React.useEffect(() => {
-    fetch('https://61227cced446280017054894.mockapi.io/items')
-      .then(res => res.json())
-        .then(data => setItems(data))
+    async function fetchData(){
+     try{
+      const [itemsResponse, favResponse] = await Promise.all([
+        axios.get('https://61227cced446280017054894.mockapi.io/items'),
+        axios.get('https://61227cced446280017054894.mockapi.io/favorite')
+      ]);
+      setFavItems(favResponse.data);
+      setItems(itemsResponse.data);
+     }catch(e){
+       alert("Что-то пошло не так :(")
+       console.log(e);
+     }
+    }
+    fetchData()
   }, []);
 
   const addCartItemHandler = (item) => {
+    console.log(cartItems);
     setCartItems(
       [...cartItems, item]
     );
+  }
+
+  const onAddHandler = (id) => {
+    return cartItems.some(item => Number(item.id) === Number(id))
   }
 
   const removeItemHandler = (id) => {
@@ -27,7 +49,7 @@ function App() {
     setCartItems(filteredItems);
   }
 
-  // used Fetch to get post database 
+  // used Fetch to get and post database 
 
   async function postData(url = '', data = {}) {
     const response = await fetch(url, {
@@ -37,59 +59,55 @@ function App() {
       },
       body: JSON.stringify(data)
     })
-
     return response.json(); 
   }
 
   const addToFavHandler = async (item) => {
-    await postData("https://61227cced446280017054894.mockapi.io/cart", item)
-  }
+    if(favItems.find(favItem => favItem.id === item.id)){
+      setFavItems(favItems.filter(fav => Number(fav.id )!== Number(item.id)))
+      fetch('https://61227cced446280017054894.mockapi.io/favorite/' + item.id, {
+        method: 'DELETE'
+      })
+    }else{
+        const data = await postData("https://61227cced446280017054894.mockapi.io/favorite", item)
+        setFavItems([...favItems, data])
+      }
+    }
 
   return (
-    <div className="wrapper clear">
-      <Header showDrawer={() => setVisibile(true)} />
-      <div className="content p-50">
-        <div className="content__title d-flex align-center justify-between pb-50" >
-          <h2 className="title">
-            {searchValue 
-              ? `Поиск по запросу: "${searchValue}"` 
-              : "Все кроссовки"
-            }
-          </h2>
-          <div className="search d-flex align-center">
-            <img src="./images/search.svg" alt="search"/>
-            <input 
-              placeholder="search..." 
-              type='text' 
-              onChange={(e) => setSearchValue(e.target.value)}
+    <AppContext.Provider value={{
+      items,
+      cartItems,
+      setCartItems,
+      favItems,
+      onAddHandler,
+    }}>
+      <div className="wrapper clear">
+        <Header showDrawer={() => setVisibile(true)} />
+          {visible && 
+            <Drawer 
+              visible={visible}
+              cartItems={cartItems}
+              hideDrawer={() => setVisibile(false)} 
+              removeItem={removeItemHandler}
+              setCartItems={setCartItems}
             />
-          </div>
-        </div>
-        {visible && 
-          <Drawer 
-            cartItems={cartItems}
-            hideDrawer={() => setVisibile(false)} 
-            removeItem={removeItemHandler}
-          />
-        }
-        <div className="content__row d-flex justify-between">
-          {items &&
-            items.filter(item => item.title.toLowerCase().includes(searchValue.toLocaleLowerCase())) 
-            .map(item => (
-              <Card 
-                key={item.id}
-                fav={false}
-                {...item}
-                addToCart={addCartItemHandler}
-                addToFav={addToFavHandler}
-              />
-            ))
-            
           }
-        
-        </div>
+          <Route path="/" exact>
+            <Home
+              searchValue={searchValue}
+              addToFavHandler={addToFavHandler}
+              addCartItemHandler={addCartItemHandler}
+              setSearchValue={setSearchValue}
+            />
+          </Route>
+          <Route path="/favorite">
+            <Favorite
+              addToFav={addToFavHandler}
+            />
+          </Route>
       </div>
-    </div>
+    </AppContext.Provider>
   );
 }
 

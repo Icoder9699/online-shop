@@ -1,10 +1,26 @@
 import React from 'react'
+import classes from './Drawer.module.scss';
+import { useCart } from '../../hooks/useCart';
 
-import './Drawer.scss'
-export default function Drawer({hideDrawer, cartItems, removeItem}) {
+export default function Drawer({hideDrawer, removeItem, setCartItems, visible}) {
+    const [isOrdered, setIsOrdered] = React.useState(false);
+    const [isLoading, setLoading] = React.useState(false);
+    const {cartItems, totalPrice} = useCart();
+
+    const orderProductHandler = () => {
+        setLoading(true)
+        setIsOrdered(false)
+        const timeout = window.setTimeout(() => {
+            setIsOrdered(true);
+            clearTimeout(timeout)
+            setLoading(false)
+            setCartItems([])
+        }, 1000)
+    }
+
     return (
-        <div className="overlay">
-            <div className="drawer d-flex flex-column">
+        <div className={`${classes.overlay} ${visible ? classes.overlayVisible : ""}`}>
+            <div className={classes.drawer}>
                 <h2 
                     сlassName="d-flex justify-between align-center"
                     onClick={() => hideDrawer()}
@@ -17,21 +33,21 @@ export default function Drawer({hideDrawer, cartItems, removeItem}) {
                 </h2>
 
             {/* если пустая корзина */}
-            {!cartItems.length > 0 
+            { !cartItems.length > 0 
                 ?
-                <div className="drawer__empty">
-                    <img src="./images/empty.png" alt="empty"/>
-                    <h2>Корзина пустая</h2>
-                    <p>Добавьте хотя бы одну пару кроссовок, чтобы сделать заказ.</p>
+                <div className={classes.drawerEmpty}>
+                    <img src={!isOrdered ? "./images/empty.png" : "./images/complete-order.jpg"} alt="empty"/>
+                    <h3>{!isOrdered ? "Корзина пустая" : "Заказ оформлен!"}</h3>
+                    <p>{!isOrdered ? "Добавьте хотя бы одну пару кроссовок, чтобы сделать заказ." : "Ваш заказ #18 скоро будет передан курьерской доставке"}</p>
                     <button className="order" onClick={() => hideDrawer()}>Вернуться назад</button>
                 </div>
                 :
-                <div className='d-flex flex-column justify-between drawer__order'>
-                    <div className="drawer__items mt-30">
+                <div className={classes.drawerOrder}>
+                    <div className={classes.flex}>
                        {cartItems && 
                             cartItems.map((item => (
                                 <div 
-                                    className="drawer__item d-flex align-center justify-between"
+                                    className={`${classes.drawerItem} drawer__item d-flex align-center justify-between`}
                                     key={item.id}
                                 >
                                     <img width={70} height={70} src={item.imgUrl} alt='ked'/>
@@ -46,24 +62,24 @@ export default function Drawer({hideDrawer, cartItems, removeItem}) {
                                 </div>
                             )))
                        }
-                     
                     </div>
-                    <div className="drawer__info">
+                    <div className={classes.drawerInfo}>
                         <ul>
                             <li className="d-flex justify-between">
                                     <span>Итоги:</span>
                                     <div></div>
-                                    <b>{cartItems.reduce((sum, item) => (
-                                        item.price + sum
-                                    ),0)} руб. </b>
+                                    <b>{totalPrice} руб. </b>
                                 </li>
                                 <li className="d-flex justify-between">
                                     <span>Налог 5%:</span>
                                     <div></div>
-                                    <b>1074 руб.</b>
+                                    <b>{totalPrice / 100 * 5} руб.</b>
                                 </li>
                         </ul>
-                        <button className="order mt-20">Оформить заказ</button>
+                        <button 
+                            onClick={() => orderProductHandler()}
+                            className="order mt-20">{!isLoading ? "Оформить заказ" : "Оформляем заказ..."}
+                        </button>
                     </div>
                 </div>
             }

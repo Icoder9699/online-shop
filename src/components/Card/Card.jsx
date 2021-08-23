@@ -1,13 +1,12 @@
 import React from 'react'
 import classes from './Card.module.scss'
 
-export default function Card({title, imgUrl, price, id, fav, addToCart, addToFav}) {
-    const [isAdded, setAdded] = React.useState(false)
-    const [isFav, setFav] = React.useState(false);
+export default function Card({title, imgUrl, price, id, addToCart, addToFav, favorite, added}) {
+    const [isFav, setFav] = React.useState(favorite);
     
     const onAddToCart = () => {
         addToCart({imgUrl, title, price, id});
-        setAdded(true)
+        added();
     }
     
     const onAddToFav = () => {
@@ -34,7 +33,7 @@ export default function Card({title, imgUrl, price, id, fav, addToCart, addToFav
                     </b>
                 </div>
                 <img 
-                    src={isAdded ? "./images/btn-checked.svg" : "./images/btn-plus.svg" }
+                    src={added(id) ? "./images/btn-checked.svg" : "./images/btn-plus.svg" }
                     alt="plus"
                     onClick={() => onAddToCart()}
                 />
